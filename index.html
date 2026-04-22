@@ -16,7 +16,7 @@
 
 body {
   font-family: 'Poppins', sans-serif;
-  background: #000000;
+  background: #000;
   color: #fff;
 }
 
@@ -25,15 +25,10 @@ header {
   padding:30px 20px;
 }
 
-header h1 {
-  font-size:32px;
-  letter-spacing:4px;
-}
-
-header span {
-  font-size:12px;
-  color:#BFBFBF;
-  letter-spacing:6px;
+.logo {
+  width:180px;
+  display:block;
+  margin:auto;
 }
 
 .container {
@@ -43,8 +38,8 @@ header span {
 }
 
 .search-box {
-  background: rgba(255,255,255,0.05);
-  backdrop-filter: blur(10px);
+  background: rgba(255,255,255,0.03);
+  border:1px solid rgba(255,255,255,0.08);
   padding:20px;
   border-radius:15px;
   margin-bottom:20px;
@@ -56,7 +51,6 @@ input {
   border-radius:10px;
   border:none;
   margin-bottom:10px;
-  outline:none;
 }
 
 button {
@@ -69,8 +63,8 @@ button {
   font-weight:bold;
 }
 
-.btn-primary { background:white; color:black; }
-.btn-secondary { background:transparent; border:1px solid white; color:white; }
+.btn-primary { background:#fff; color:#000; }
+.btn-secondary { background:transparent; border:1px solid rgba(255,255,255,0.5); color:#fff; }
 
 #map {
   height:300px;
@@ -79,18 +73,14 @@ button {
 }
 
 .gc-card {
-  background: rgba(255,255,255,0.05);
+  background: rgba(255,255,255,0.03);
+  border:1px solid rgba(255,255,255,0.08);
   padding:15px;
   border-radius:15px;
   margin-bottom:15px;
   display:flex;
   gap:15px;
   align-items:center;
-  transition:0.3s;
-}
-
-.gc-card:hover {
-  transform:scale(1.02);
 }
 
 .gc-card img {
@@ -100,11 +90,48 @@ button {
 }
 
 .gc-info h3 { font-size:18px; }
-.gc-info p { font-size:13px; color:#BFBFBF; }
+
+.gc-info p {
+  font-size:13px;
+  color:#BFBFBF;
+}
 
 .distancia {
   margin-left:auto;
   font-weight:bold;
+}
+
+.badge {
+  background:#fff;
+  color:#000;
+  font-size:10px;
+  padding:3px 6px;
+  border-radius:6px;
+  margin-left:5px;
+}
+
+.btn-whatsapp {
+  display:inline-block;
+  margin-top:8px;
+  padding:8px 12px;
+  border-radius:8px;
+  background:#25D366;
+  color:#fff;
+  text-decoration:none;
+  font-size:12px;
+  font-weight:bold;
+}
+
+.btn-rota {
+  display:inline-block;
+  margin-top:6px;
+  margin-left:5px;
+  padding:8px 12px;
+  border-radius:8px;
+  background:#1a73e8;
+  color:#fff;
+  text-decoration:none;
+  font-size:12px;
 }
 </style>
 </head>
@@ -112,7 +139,7 @@ button {
 <body>
 
 <header>
-  <img src="WhatsApp Image 2026-04-22 at 15.19.40.jpeg" alt="Logo da Igreja" class="logo">
+  <img src="logo.png" class="logo">
 </header>
 
 <div class="container">
@@ -131,7 +158,7 @@ button {
 <script>
 
 // =====================
-// 📍 DADOS DOS GCs
+// 📍 DADOS
 // =====================
 
 let gcs = [
@@ -143,6 +170,7 @@ let gcs = [
     lng: -43.4800,
     lideres: "Bruno e Daise",
     pessoas: 15,
+    whatsapp: "5521995001982",
     foto: "https://i.pravatar.cc/102"
   },
   {
@@ -153,6 +181,7 @@ let gcs = [
     lng: -43.3117,
     lideres: "William e Lilian",
     pessoas: 20,
+    whatsapp: "5521990002395",
     foto: "https://i.pravatar.cc/103"
   }
 ];
@@ -164,19 +193,15 @@ let map;
 // =====================
 
 function initMap(lat = -22.90, lng = -43.20) {
-  if (map) {
-    map.remove();
-  }
+  if (map) map.remove();
 
   map = L.map('map').setView([lat, lng], 11);
 
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '&copy; OpenStreetMap'
-  }).addTo(map);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 }
 
 // =====================
-// 📌 MARCADORES
+// 📌 MARCADOR
 // =====================
 
 function adicionarMarcador(gc) {
@@ -185,8 +210,8 @@ function adicionarMarcador(gc) {
     .bindPopup(`
       <strong>${gc.nome}</strong><br>
       ${gc.bairro}<br>
-      ${gc.lideres}<br>
-      ${gc.pessoas} pessoas
+      <a href="https://wa.me/${gc.whatsapp}" target="_blank">WhatsApp</a><br>
+      <a href="https://www.google.com/maps?q=${gc.lat},${gc.lng}" target="_blank">Ver rota</a>
     `);
 }
 
@@ -211,40 +236,23 @@ function calcularDistancia(lat1, lon1, lat2, lon2) {
 }
 
 // =====================
-// 🔍 BUSCA (PHOTON - FUNCIONA NO GITHUB)
+// 🔍 BUSCA
 // =====================
 
 async function buscar() {
   const bairro = document.getElementById("bairro").value;
 
-  if (!bairro) {
-    alert("Digite um bairro ou cidade");
+  const res = await fetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(bairro + " Brasil")}`);
+  const data = await res.json();
+
+  if (data.features.length === 0) {
+    alert("Local não encontrado");
     return;
   }
 
-  try {
-    const res = await fetch(
-      `https://photon.komoot.io/api/?q=${encodeURIComponent(bairro + " Brasil")}`
-    );
+  const coords = data.features[0].geometry.coordinates;
 
-    const data = await res.json();
-
-    if (data.features.length === 0) {
-      alert("Local não encontrado");
-      return;
-    }
-
-    const coords = data.features[0].geometry.coordinates;
-
-    const lng = coords[0];
-    const lat = coords[1];
-
-    mostrarGCs(lat, lng);
-
-  } catch (erro) {
-    console.error(erro);
-    alert("Erro ao buscar localização");
-  }
+  mostrarGCs(coords[1], coords[0]);
 }
 
 // =====================
@@ -258,7 +266,7 @@ function usarLocalizacao() {
 }
 
 // =====================
-// 📊 MOSTRAR GCs
+// 📊 LISTA
 // =====================
 
 function mostrarGCs(userLat, userLng) {
@@ -275,7 +283,7 @@ function mostrarGCs(userLat, userLng) {
 
   ordenados.sort((a, b) => a.distancia - b.distancia);
 
-  ordenados.forEach(gc => {
+  ordenados.forEach((gc, index) => {
 
     adicionarMarcador(gc);
 
@@ -283,10 +291,30 @@ function mostrarGCs(userLat, userLng) {
       <div class="gc-card">
         <img src="${gc.foto}">
         <div class="gc-info">
-          <h3>${gc.nome}</h3>
+          <h3>
+            ${gc.nome}
+            ${index === 0 ? '<span class="badge">Mais próximo</span>' : ''}
+          </h3>
           <p>${gc.bairro}</p>
           <p>${gc.lideres} • ${gc.pessoas} pessoas</p>
+
+          <a 
+            href="https://wa.me/${gc.whatsapp}?text=Olá! Quero participar do ${gc.nome} no ${gc.bairro}"
+            target="_blank"
+            class="btn-whatsapp"
+          >
+            Entrar no GC
+          </a>
+
+          <a 
+            href="https://www.google.com/maps?q=${gc.lat},${gc.lng}"
+            target="_blank"
+            class="btn-rota"
+          >
+            Ver rota
+          </a>
         </div>
+
         <div class="distancia">
           ${gc.distancia.toFixed(1)} km
         </div>
@@ -295,7 +323,6 @@ function mostrarGCs(userLat, userLng) {
   });
 }
 
-// START
 initMap();
 
 </script>
