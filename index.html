@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Nova Igreja | Grupos de Conexão</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+
+<style>
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Poppins', sans-serif;
+  background: #0A0A0A;
+  color: #fff;
+}
+
+/* HEADER */
+header {
+  text-align: center;
+  padding: 30px 20px;
+}
+
+header h1 {
+  font-size: 32px;
+  letter-spacing: 4px;
+}
+
+header span {
+  font-size: 12px;
+  color: #BFBFBF;
+  letter-spacing: 6px;
+}
+
+/* CONTAINER */
+.container {
+  padding: 20px;
+  max-width: 900px;
+  margin: auto;
+}
+
+/* BUSCA */
+.search-box {
+  background: rgba(255,255,255,0.05);
+  backdrop-filter: blur(10px);
+  padding: 20px;
+  border-radius: 15px;
+  margin-bottom: 20px;
+}
+
+input {
+  width: 100%;
+  padding: 12px;
+  border-radius: 10px;
+  border: none;
+  margin-bottom: 10px;
+  outline: none;
+}
+
+button {
+  width: 100%;
+  padding: 12px;
+  border-radius: 10px;
+  border: none;
+  cursor: pointer;
+  margin-top: 5px;
+  font-weight: bold;
+}
+
+.btn-primary {
+  background: white;
+  color: black;
+}
+
+.btn-secondary {
+  background: transparent;
+  border: 1px solid white;
+  color: white;
+}
+
+/* MAPA */
+#map {
+  height: 300px;
+  border-radius: 15px;
+  margin-bottom: 20px;
+}
+
+/* CARDS */
+.gc-card {
+  background: rgba(255,255,255,0.05);
+  padding: 15px;
+  border-radius: 15px;
+  margin-bottom: 15px;
+  display: flex;
+  gap: 15px;
+  align-items: center;
+  transition: 0.3s;
+}
+
+.gc-card:hover {
+  transform: scale(1.02);
+}
+
+.gc-card img {
+  width: 70px;
+  height: 70px;
+  border-radius: 50%;
+}
+
+.gc-info h3 {
+  font-size: 18px;
+}
+
+.gc-info p {
+  font-size: 13px;
+  color: #BFBFBF;
+}
+
+.distancia {
+  margin-left: auto;
+  font-weight: bold;
+}
+
+</style>
+</head>
+
+<body>
+
+<header>
+  <h1>NOVA</h1>
+  <span>IGREJA</span>
+</header>
+
+<div class="container">
+
+  <div class="search-box">
+    <input type="text" id="bairro" placeholder="Digite seu bairro...">
+    <button class="btn-primary" onclick="buscar()">Buscar GC</button>
+    <button class="btn-secondary" onclick="usarLocalizacao()">Usar minha localização</button>
+  </div>
+
+  <div id="map"></div>
+
+  <div id="lista"></div>
+
+</div>
+
+<script src="https://maps.googleapis.com/maps/api/js?key=SUA_API_KEY"></script>
+
+<script>
+
+let gcs = [
+  {
+    nome: "GC Centro",
+    bairro: "Centro",
+    lat: -23.5505,
+    lng: -46.6333,
+    lideres: "João e Maria",
+    pessoas: 15,
+    foto: "https://i.pravatar.cc/100"
+  },
+  {
+    nome: "GC Zona Sul",
+    bairro: "Vila Mariana",
+    lat: -23.589,
+    lng: -46.634,
+    lideres: "Carlos e Ana",
+    pessoas: 20,
+    foto: "https://i.pravatar.cc/101"
+  }
+];
+
+let map;
+
+function initMap(lat = -23.5505, lng = -46.6333) {
+  map = new google.maps.Map(document.getElementById("map"), {
+    center: { lat, lng },
+    zoom: 12,
+    styles: [
+      { elementType: "geometry", stylers: [{ color: "#1d1d1d" }] },
+      { elementType: "labels.text.stroke", stylers: [{ color: "#000" }] },
+      { elementType: "labels.text.fill", stylers: [{ color: "#fff" }] }
+    ]
+  });
+}
+
+function adicionarMarcador(gc) {
+  const marker = new google.maps.Marker({
+    position: { lat: gc.lat, lng: gc.lng },
+    map: map,
+    title: gc.nome,
+  });
+
+  const info = new google.maps.InfoWindow({
+    content: `<strong>${gc.nome}</strong><br>${gc.bairro}`
+  });
+
+  marker.addListener("click", () => {
+    info.open(map, marker);
+  });
+}
+
+function calcularDistancia(lat1, lon1, lat2, lon2) {
+  const R = 6371;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+
+  const a =
+    Math.sin(dLat/2) * Math.sin(dLat/2) +
+    Math.cos(lat1 * Math.PI/180) *
+    Math.cos(lat2 * Math.PI/180) *
+    Math.sin(dLon/2) * Math.sin(dLon/2);
+
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+
+  return R * c;
+}
+
+function buscar() {
+  const bairro = document.getElementById("bairro").value;
+
+  const geocoder = new google.maps.Geocoder();
+
+  geocoder.geocode({ address: bairro }, function(results, status) {
+    if (status === "OK") {
+      const lat = results[0].geometry.location.lat();
+      const lng = results[0].geometry.location.lng();
+
+      mostrarGCs(lat, lng);
+    }
+  });
+}
+
+function usarLocalizacao() {
+  navigator.geolocation.getCurrentPosition(pos => {
+    mostrarGCs(pos.coords.latitude, pos.coords.longitude);
+  });
+}
+
+function mostrarGCs(userLat, userLng) {
+
+  initMap(userLat, userLng);
+
+  let lista = document.getElementById("lista");
+  lista.innerHTML = "";
+
+  let ordenados = gcs.map(gc => {
+    let distancia = calcularDistancia(userLat, userLng, gc.lat, gc.lng);
+    return { ...gc, distancia };
+  });
+
+  ordenados.sort((a, b) => a.distancia - b.distancia);
+
+  ordenados.forEach(gc => {
+
+    adicionarMarcador(gc);
+
+    lista.innerHTML += `
+      <div class="gc-card">
+        <img src="${gc.foto}">
+        <div class="gc-info">
+          <h3>${gc.nome}</h3>
+          <p>${gc.bairro}</p>
+          <p>${gc.lideres} • ${gc.pessoas} pessoas</p>
+        </div>
+        <div class="distancia">
+          ${gc.distancia.toFixed(1)} km
+        </div>
+      </div>
+    `;
+  });
+}
+
+initMap();
+
+</script>
+
+</body>
+</html>
