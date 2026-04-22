@@ -8,6 +8,10 @@
 
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
 
+<!-- LEAFLET -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
 <style>
 
 * {
@@ -22,7 +26,6 @@ body {
   color: #fff;
 }
 
-/* HEADER */
 header {
   text-align: center;
   padding: 30px 20px;
@@ -39,14 +42,12 @@ header span {
   letter-spacing: 6px;
 }
 
-/* CONTAINER */
 .container {
   padding: 20px;
   max-width: 900px;
   margin: auto;
 }
 
-/* BUSCA */
 .search-box {
   background: rgba(255,255,255,0.05);
   backdrop-filter: blur(10px);
@@ -85,14 +86,12 @@ button {
   color: white;
 }
 
-/* MAPA */
 #map {
   height: 300px;
   border-radius: 15px;
   margin-bottom: 20px;
 }
 
-/* CARDS */
 .gc-card {
   background: rgba(255,255,255,0.05);
   padding: 15px;
@@ -101,11 +100,6 @@ button {
   display: flex;
   gap: 15px;
   align-items: center;
-  transition: 0.3s;
-}
-
-.gc-card:hover {
-  transform: scale(1.02);
 }
 
 .gc-card img {
@@ -141,20 +135,21 @@ button {
 <div class="container">
 
   <div class="search-box">
-    <input type="text" id="bairro" placeholder="Digite seu bairro...">
+    <input type="text" id="bairro" placeholder="Digite seu bairro ou cidade...">
     <button class="btn-primary" onclick="buscar()">Buscar GC</button>
     <button class="btn-secondary" onclick="usarLocalizacao()">Usar minha localização</button>
   </div>
 
   <div id="map"></div>
-
   <div id="lista"></div>
 
 </div>
 
-<script src="https://maps.googleapis.com/maps/api/js?key=SUA_API_KEY"></script>
-
 <script>
+
+// =====================
+// 📍 DADOS DOS GCs
+// =====================
 
 let gcs = [
   {
@@ -181,33 +176,31 @@ let gcs = [
 
 let map;
 
+// =====================
+// 🗺️ MAPA
+// =====================
+
 function initMap(lat = -23.5505, lng = -46.6333) {
-  map = new google.maps.Map(document.getElementById("map"), {
-    center: { lat, lng },
-    zoom: 12,
-    styles: [
-      { elementType: "geometry", stylers: [{ color: "#1d1d1d" }] },
-      { elementType: "labels.text.stroke", stylers: [{ color: "#000" }] },
-      { elementType: "labels.text.fill", stylers: [{ color: "#fff" }] }
-    ]
-  });
+  map = L.map('map').setView([lat, lng], 11);
+
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; OpenStreetMap'
+  }).addTo(map);
 }
+
+// =====================
+// 📌 MARCADOR
+// =====================
 
 function adicionarMarcador(gc) {
-  const marker = new google.maps.Marker({
-    position: { lat: gc.lat, lng: gc.lng },
-    map: map,
-    title: gc.nome,
-  });
-
-  const info = new google.maps.InfoWindow({
-    content: `<strong>${gc.nome}</strong><br>${gc.bairro}`
-  });
-
-  marker.addListener("click", () => {
-    info.open(map, marker);
-  });
+  L.marker([gc.lat, gc.lng])
+    .addTo(map)
+    .bindPopup(`<strong>${gc.nome}</strong><br>${gc.bairro}`);
 }
+
+// =====================
+// 📏 DISTÂNCIA
+// =====================
 
 function calcularDistancia(lat1, lon1, lat2, lon2) {
   const R = 6371;
@@ -225,26 +218,39 @@ function calcularDistancia(lat1, lon1, lat2, lon2) {
   return R * c;
 }
 
-function buscar() {
+// =====================
+// 🔍 BUSCAR (SEM GOOGLE)
+// =====================
+
+async function buscar() {
   const bairro = document.getElementById("bairro").value;
 
-  const geocoder = new google.maps.Geocoder();
+  const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${bairro}`);
+  const data = await res.json();
 
-  geocoder.geocode({ address: bairro }, function(results, status) {
-    if (status === "OK") {
-      const lat = results[0].geometry.location.lat();
-      const lng = results[0].geometry.location.lng();
+  if (data.length > 0) {
+    const lat = parseFloat(data[0].lat);
+    const lng = parseFloat(data[0].lon);
 
-      mostrarGCs(lat, lng);
-    }
-  });
+    mostrarGCs(lat, lng);
+  } else {
+    alert("Local não encontrado");
+  }
 }
+
+// =====================
+// 📍 GPS
+// =====================
 
 function usarLocalizacao() {
   navigator.geolocation.getCurrentPosition(pos => {
     mostrarGCs(pos.coords.latitude, pos.coords.longitude);
   });
 }
+
+// =====================
+// 📊 MOSTRAR GCs
+// =====================
 
 function mostrarGCs(userLat, userLng) {
 
@@ -280,6 +286,7 @@ function mostrarGCs(userLat, userLng) {
   });
 }
 
+// START
 initMap();
 
 </script>
