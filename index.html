@@ -8,17 +8,11 @@
 
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
 
-<!-- LEAFLET -->
 <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
 <style>
-
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
+* { margin:0; padding:0; box-sizing:border-box; }
 
 body {
   font-family: 'Poppins', sans-serif;
@@ -27,101 +21,86 @@ body {
 }
 
 header {
-  text-align: center;
-  padding: 30px 20px;
+  text-align:center;
+  padding:30px 20px;
 }
 
 header h1 {
-  font-size: 32px;
-  letter-spacing: 4px;
+  font-size:32px;
+  letter-spacing:4px;
 }
 
 header span {
-  font-size: 12px;
-  color: #BFBFBF;
-  letter-spacing: 6px;
+  font-size:12px;
+  color:#BFBFBF;
+  letter-spacing:6px;
 }
 
 .container {
-  padding: 20px;
-  max-width: 900px;
-  margin: auto;
+  padding:20px;
+  max-width:900px;
+  margin:auto;
 }
 
 .search-box {
   background: rgba(255,255,255,0.05);
   backdrop-filter: blur(10px);
-  padding: 20px;
-  border-radius: 15px;
-  margin-bottom: 20px;
+  padding:20px;
+  border-radius:15px;
+  margin-bottom:20px;
 }
 
 input {
-  width: 100%;
-  padding: 12px;
-  border-radius: 10px;
-  border: none;
-  margin-bottom: 10px;
-  outline: none;
+  width:100%;
+  padding:12px;
+  border-radius:10px;
+  border:none;
+  margin-bottom:10px;
+  outline:none;
 }
 
 button {
-  width: 100%;
-  padding: 12px;
-  border-radius: 10px;
-  border: none;
-  cursor: pointer;
-  margin-top: 5px;
-  font-weight: bold;
+  width:100%;
+  padding:12px;
+  border-radius:10px;
+  border:none;
+  cursor:pointer;
+  margin-top:5px;
+  font-weight:bold;
 }
 
-.btn-primary {
-  background: white;
-  color: black;
-}
-
-.btn-secondary {
-  background: transparent;
-  border: 1px solid white;
-  color: white;
-}
+.btn-primary { background:white; color:black; }
+.btn-secondary { background:transparent; border:1px solid white; color:white; }
 
 #map {
-  height: 300px;
-  border-radius: 15px;
-  margin-bottom: 20px;
+  height:300px;
+  border-radius:15px;
+  margin-bottom:20px;
 }
 
 .gc-card {
   background: rgba(255,255,255,0.05);
-  padding: 15px;
-  border-radius: 15px;
-  margin-bottom: 15px;
-  display: flex;
-  gap: 15px;
-  align-items: center;
+  padding:15px;
+  border-radius:15px;
+  margin-bottom:15px;
+  display:flex;
+  gap:15px;
+  align-items:center;
 }
 
 .gc-card img {
-  width: 70px;
-  height: 70px;
-  border-radius: 50%;
+  width:70px;
+  height:70px;
+  border-radius:50%;
 }
 
-.gc-info h3 {
-  font-size: 18px;
-}
-
-.gc-info p {
-  font-size: 13px;
-  color: #BFBFBF;
-}
+.gc-info h3 { font-size:18px; }
+.gc-info p { font-size:13px; color:#BFBFBF; }
 
 .distancia {
-  margin-left: auto;
-  font-weight: bold;
+  margin-left:auto;
+  font-weight:bold;
 }
-
 </style>
 </head>
 
@@ -148,7 +127,7 @@ button {
 <script>
 
 // =====================
-// 📍 DADOS DOS GCs
+// 📍 DADOS
 // =====================
 
 let gcs = [
@@ -180,7 +159,11 @@ let map;
 // 🗺️ MAPA
 // =====================
 
-function initMap(lat = -23.5505, lng = -46.6333) {
+function initMap(lat = -22.90, lng = -43.20) {
+  if (map) {
+    map.remove(); // evita bug ao reiniciar mapa
+  }
+
   map = L.map('map').setView([lat, lng], 11);
 
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -219,22 +202,41 @@ function calcularDistancia(lat1, lon1, lat2, lon2) {
 }
 
 // =====================
-// 🔍 BUSCAR (SEM GOOGLE)
+// 🔍 BUSCA (CORRIGIDA)
 // =====================
 
 async function buscar() {
   const bairro = document.getElementById("bairro").value;
 
-  const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${bairro}`);
-  const data = await res.json();
+  if (!bairro) {
+    alert("Digite um bairro ou cidade");
+    return;
+  }
 
-  if (data.length > 0) {
-    const lat = parseFloat(data[0].lat);
-    const lng = parseFloat(data[0].lon);
+  try {
+    const res = await fetch(
+      `https://nominatim.openstreetmap.org/search?format=json&q=${bairro}, Brasil`,
+      {
+        headers: {
+          "Accept": "application/json"
+        }
+      }
+    );
 
-    mostrarGCs(lat, lng);
-  } else {
-    alert("Local não encontrado");
+    const data = await res.json();
+
+    if (data.length > 0) {
+      const lat = parseFloat(data[0].lat);
+      const lng = parseFloat(data[0].lon);
+
+      mostrarGCs(lat, lng);
+    } else {
+      alert("Local não encontrado");
+    }
+
+  } catch (erro) {
+    alert("Erro ao buscar localização");
+    console.error(erro);
   }
 }
 
