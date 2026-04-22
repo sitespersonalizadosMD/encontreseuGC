@@ -86,6 +86,11 @@ button {
   display:flex;
   gap:15px;
   align-items:center;
+  transition:0.3s;
+}
+
+.gc-card:hover {
+  transform:scale(1.02);
 }
 
 .gc-card img {
@@ -127,7 +132,7 @@ button {
 <script>
 
 // =====================
-// 📍 DADOS
+// 📍 DADOS DOS GCs
 // =====================
 
 let gcs = [
@@ -161,7 +166,7 @@ let map;
 
 function initMap(lat = -22.90, lng = -43.20) {
   if (map) {
-    map.remove(); // evita bug ao reiniciar mapa
+    map.remove();
   }
 
   map = L.map('map').setView([lat, lng], 11);
@@ -172,13 +177,18 @@ function initMap(lat = -22.90, lng = -43.20) {
 }
 
 // =====================
-// 📌 MARCADOR
+// 📌 MARCADORES
 // =====================
 
 function adicionarMarcador(gc) {
   L.marker([gc.lat, gc.lng])
     .addTo(map)
-    .bindPopup(`<strong>${gc.nome}</strong><br>${gc.bairro}`);
+    .bindPopup(`
+      <strong>${gc.nome}</strong><br>
+      ${gc.bairro}<br>
+      ${gc.lideres}<br>
+      ${gc.pessoas} pessoas
+    `);
 }
 
 // =====================
@@ -202,7 +212,7 @@ function calcularDistancia(lat1, lon1, lat2, lon2) {
 }
 
 // =====================
-// 🔍 BUSCA (CORRIGIDA)
+// 🔍 BUSCA (PHOTON - FUNCIONA NO GITHUB)
 // =====================
 
 async function buscar() {
@@ -215,28 +225,26 @@ async function buscar() {
 
   try {
     const res = await fetch(
-      `https://nominatim.openstreetmap.org/search?format=json&q=${bairro}, Brasil`,
-      {
-        headers: {
-          "Accept": "application/json"
-        }
-      }
+      `https://photon.komoot.io/api/?q=${encodeURIComponent(bairro + " Brasil")}`
     );
 
     const data = await res.json();
 
-    if (data.length > 0) {
-      const lat = parseFloat(data[0].lat);
-      const lng = parseFloat(data[0].lon);
-
-      mostrarGCs(lat, lng);
-    } else {
+    if (data.features.length === 0) {
       alert("Local não encontrado");
+      return;
     }
 
+    const coords = data.features[0].geometry.coordinates;
+
+    const lng = coords[0];
+    const lat = coords[1];
+
+    mostrarGCs(lat, lng);
+
   } catch (erro) {
-    alert("Erro ao buscar localização");
     console.error(erro);
+    alert("Erro ao buscar localização");
   }
 }
 
